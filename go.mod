@@ -1,5 +1,5 @@
 // filepath: c:\Users\pc\Desktop\Sudoku\sudoku-lambda\go.// filepath: c:\Users\pc\Desktop\Sudoku\sudoku-lambda\go.mod
-module github.com/YourUsername/sudoku-lambda
+module github.com/Ahmadhamdan47/sudoku-lambda
 
 go 1.20
 
