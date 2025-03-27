@@ -4,7 +4,7 @@ import (
     "context"
     "encoding/json"
     "github.com/aws/aws-lambda-go/lambda"
-    "github.com/yourusername/sudoku-lambda/internal/sudoku"
+    "github.com/Ahmadhamdan47/sudoku-lambda/internal/sudoku"
 )
 
 type Response struct {
