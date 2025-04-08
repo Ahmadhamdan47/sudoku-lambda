@@ -3,6 +3,4 @@ module github.com/Ahmadhamdan47/sudoku-lambda
 
 go 1.20
 
-require (
-    github.com/aws/aws-lambda-go v1.36.0
-)
+require github.com/aws/aws-lambda-go v1.36.0

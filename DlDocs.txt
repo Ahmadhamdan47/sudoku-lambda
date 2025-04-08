@@ -1,0 +1,171 @@
+Documentation for dancinglinks.go
+This file implements a Sudoku puzzle generator and solver using the Dancing Links algorithm for exact cover problems. It also includes various solving techniques to analyze the difficulty of Sudoku puzzles.
+
+Constants
+N: The size of the Sudoku board (9x9).
+Types
+Board
+Represents a 9x9 Sudoku board as a 2D array of integers.
+
+solvingTechnique
+An enumeration of solving techniques:
+
+naKedSingle
+hiddenSingle
+naKedPair
+pointing
+xWing
+difficultyLevel
+An enumeration of difficulty levels:
+
+easy
+medium
+hard
+veryHard
+strategy
+Represents a solving strategy:
+
+name: The name of the solving technique.
+level: The difficulty level of the technique.
+function: The function implementing the solving technique.
+node
+A node in the Dancing Links data structure:
+
+left, right, up, down: Pointers to neighboring nodes.
+header: Pointer to the column header node.
+row: The row index this node belongs to.
+dancingLinks
+Represents the Dancing Links structure:
+
+head: The head node of the Dancing Links structure.
+columns: A list of column header nodes.
+solution: A list of nodes representing the current solution.
+rowMap: Maps rows to their corresponding Sudoku constraints.
+Functions
+Sudoku Puzzle Generation
+GenerateSudoku(difficulty string) (Board, Board, string)
+Generates a Sudoku puzzle and its solution based on the specified difficulty level.
+
+Parameters:
+difficulty: The desired difficulty level ("easy", "medium", "hard", "very-hard").
+Returns:
+Board: The generated Sudoku puzzle.
+Board: The solution to the puzzle.
+string: The actual difficulty level of the generated puzzle.
+createMinimalPuzzle(solution Board, cluesRange [2]int) Board
+Creates a minimal Sudoku puzzle by removing numbers from a solved board while ensuring a unique solution.
+
+Parameters:
+solution: A solved Sudoku board.
+cluesRange: The range of clues to retain in the puzzle.
+Returns:
+Board: The generated puzzle.
+Sudoku Solving
+(*Board) Solve() bool
+Solves the Sudoku board using the Dancing Links algorithm.
+
+Returns:
+bool: true if the board is solvable, false otherwise.
+countSolutionsDLX(board *Board, limit int) int
+Counts the number of solutions for a Sudoku board using the Dancing Links algorithm.
+
+Parameters:
+board: The Sudoku board to analyze.
+limit: The maximum number of solutions to find.
+Returns:
+int: The number of solutions found.
+(*Board) analyzeDifficulty() difficultyLevel
+Analyzes the difficulty of a Sudoku puzzle based on solving techniques.
+
+Returns:
+difficultyLevel: The difficulty level of the puzzle.
+Dancing Links Implementation
+newDancingLinks(rows [][]int, mappings []struct{ row, col, num int }) *dancingLinks
+Initializes a Dancing Links structure for solving exact cover problems.
+
+Parameters:
+rows: The exact cover matrix.
+mappings: A mapping of rows to Sudoku constraints.
+Returns:
+*dancingLinks: The initialized Dancing Links structure.
+(*dancingLinks) solve(maxSolutions int) [][]struct{ row, col, num int }
+Solves the exact cover problem using the Dancing Links algorithm.
+
+Parameters:
+maxSolutions: The maximum number of solutions to find.
+Returns:
+[][]struct{ row, col, num int }: The solutions found.
+(*dancingLinks) cover(col *node)
+Covers a column in the Dancing Links structure, removing it and its associated rows.
+
+(*dancingLinks) uncover(col *node)
+Uncovers a column in the Dancing Links structure, restoring it and its associated rows.
+
+Helper Functions
+constraintColumns(row, col, num int) []int
+Generates the constraint columns for a given cell in the Sudoku board.
+
+Parameters:
+row: The row index.
+col: The column index.
+num: The number to place in the cell.
+Returns:
+[]int: The constraint columns.
+countClues(b Board) int
+Counts the number of clues (non-zero cells) in a Sudoku board.
+
+Parameters:
+b: The Sudoku board.
+Returns:
+int: The number of clues.
+difficultyLevelToString(level difficultyLevel) string
+Converts a difficulty level to its string representation.
+
+Parameters:
+level: The difficulty level.
+Returns:
+string: The string representation of the difficulty level.
+PrintBoard(b Board)
+Prints a Sudoku board in a human-readable format.
+
+Parameters:
+b: The Sudoku board to print.
+Solving Techniques
+solveNakedSingle(b *Board) bool
+Solves cells with only one possible candidate.
+
+Parameters:
+b: The Sudoku board.
+Returns:
+bool: true if any cells were solved, false otherwise.
+solveHiddenSingle(b *Board) bool
+Solves cells where a candidate is unique within a row, column, or box.
+
+Parameters:
+b: The Sudoku board.
+Returns:
+bool: true if any cells were solved, false otherwise.
+solveNakedPair(b *Board) bool
+Eliminates candidates based on pairs of cells with identical candidates.
+
+Parameters:
+b: The Sudoku board.
+Returns:
+bool: true if any candidates were eliminated, false otherwise.
+solvePointing(b *Board) bool
+Eliminates candidates based on pointing pairs or triples.
+
+Parameters:
+b: The Sudoku board.
+Returns:
+bool: true if any candidates were eliminated, false otherwise.
+solveXWing(b *Board) bool
+Eliminates candidates based on the X-Wing pattern.
+
+Parameters:
+b: The Sudoku board.
+Returns:
+bool: true if any candidates were eliminated, false otherwise.
+Main Function
+main()
+Generates and prints a Sudoku puzzle and its solution based on a specified difficulty level. It also prints the number of clues in the puzzle.
