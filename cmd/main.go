@@ -17,11 +17,20 @@ type Response struct {
 	Difficulty string  `json:"difficulty"`
 	Size       int     `json:"size"`
 	Success    bool    `json:"success"`
+	// V2-only diagnostics, omitted on production (v1) responses.
+	Algorithm     string `json:"algorithm,omitempty"`
+	HiddenSingles *int   `json:"hiddenSingles,omitempty"`
+	NakedSingles  *int   `json:"nakedSingles,omitempty"`
+	Attempts      *int   `json:"attempts,omitempty"`
 }
 
 type Request struct {
 	Difficulty string `json:"difficulty"`
 	Size       int    `json:"size"`
+	// Algorithm selects the generator: "" or "v1" = production, "v2" = the
+	// player-tested generator (9x9 only). Lets the admin exercise V2 from
+	// the same endpoint without touching production behavior.
+	Algorithm string `json:"algorithm"`
 }
 
 // boardToSlice converts the default 9x9 Board to a [][]int slice.
@@ -68,6 +77,44 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 		return events.APIGatewayProxyResponse{
 			StatusCode: 400,
 			Body:       fmt.Sprintf(`{"error": "invalid size: %d, must be 4, 6, or 9"}`, parsedReq.Size),
+		}, nil
+	}
+
+	validAlgorithms := map[string]bool{"": true, "v1": true, "v2": true}
+	if !validAlgorithms[parsedReq.Algorithm] {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 400,
+			Body:       fmt.Sprintf(`{"error": "invalid algorithm: %s, must be v1 or v2"}`, parsedReq.Algorithm),
+		}, nil
+	}
+	if parsedReq.Algorithm == "v2" && parsedReq.Size != 9 {
+		return events.APIGatewayProxyResponse{
+			StatusCode: 400,
+			Body:       `{"error": "algorithm v2 is only available for size 9"}`,
+		}, nil
+	}
+
+	if parsedReq.Algorithm == "v2" {
+		result := sudoku.GenerateSudokuPuzzleV2(parsedReq.Difficulty)
+		response := Response{
+			Puzzle:        boardToSlice(result.Puzzle),
+			Solution:      boardToSlice(result.Solution),
+			Clues:         result.Clues,
+			Difficulty:    parsedReq.Difficulty,
+			Size:          9,
+			Success:       result.Success,
+			Algorithm:     "v2",
+			HiddenSingles: &result.HiddenSingles,
+			NakedSingles:  &result.NakedSingles,
+			Attempts:      &result.Attempts,
+		}
+		jsonResp, _ := json.Marshal(response)
+		return events.APIGatewayProxyResponse{
+			StatusCode: 200,
+			Body:       string(jsonResp),
+			Headers: map[string]string{
+				"Content-Type": "application/json",
+			},
 		}, nil
 	}
 

@@ -40,6 +40,12 @@ sudoku-lambda
 
 Once deployed, you can invoke the Lambda function via the API Gateway endpoint. The function will return a generated Sudoku puzzle along with its solution.
 
+## V2 generator (opt-in)
+
+An alternative generator is available by adding `"algorithm": "v2"` to the request body. Unlike the production generator, every puzzle it returns is guaranteed solvable using only naked and hidden singles — no guessing required. Requests without this field are unaffected.
+
+See [docs/v2-algorithm.md](docs/v2-algorithm.md) for the request/response contract, difficulty definitions, and deployment notes.
+
 ## License
 
 This project is licensed under the MIT License. See the LICENSE file for more details.
