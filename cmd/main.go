@@ -17,19 +17,22 @@ type Response struct {
 	Difficulty string  `json:"difficulty"`
 	Size       int     `json:"size"`
 	Success    bool    `json:"success"`
-	// V2-only diagnostics, omitted on production (v1) responses.
+	// V2/V3-only diagnostics, omitted on production (v1) responses.
 	Algorithm     string `json:"algorithm,omitempty"`
 	HiddenSingles *int   `json:"hiddenSingles,omitempty"`
 	NakedSingles  *int   `json:"nakedSingles,omitempty"`
 	Attempts      *int   `json:"attempts,omitempty"`
+	// Passes is V3-only: full 1→9 hidden-single cycles the solve took.
+	Passes *int `json:"passes,omitempty"`
 }
 
 type Request struct {
 	Difficulty string `json:"difficulty"`
 	Size       int    `json:"size"`
 	// Algorithm selects the generator: "" or "v1" = production, "v2" = the
-	// player-tested generator (9x9 only). Lets the admin exercise V2 from
-	// the same endpoint without touching production behavior.
+	// player-tested generator, "v3" = the pass-graded generator (both 9x9
+	// only). Lets the admin exercise them from the same endpoint without
+	// touching production behavior.
 	Algorithm string `json:"algorithm"`
 }
 
@@ -80,17 +83,42 @@ func handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.API
 		}, nil
 	}
 
-	validAlgorithms := map[string]bool{"": true, "v1": true, "v2": true}
+	validAlgorithms := map[string]bool{"": true, "v1": true, "v2": true, "v3": true}
 	if !validAlgorithms[parsedReq.Algorithm] {
 		return events.APIGatewayProxyResponse{
 			StatusCode: 400,
-			Body:       fmt.Sprintf(`{"error": "invalid algorithm: %s, must be v1 or v2"}`, parsedReq.Algorithm),
+			Body:       fmt.Sprintf(`{"error": "invalid algorithm: %s, must be v1, v2, or v3"}`, parsedReq.Algorithm),
 		}, nil
 	}
-	if parsedReq.Algorithm == "v2" && parsedReq.Size != 9 {
+	if (parsedReq.Algorithm == "v2" || parsedReq.Algorithm == "v3") && parsedReq.Size != 9 {
 		return events.APIGatewayProxyResponse{
 			StatusCode: 400,
-			Body:       `{"error": "algorithm v2 is only available for size 9"}`,
+			Body:       fmt.Sprintf(`{"error": "algorithm %s is only available for size 9"}`, parsedReq.Algorithm),
+		}, nil
+	}
+
+	if parsedReq.Algorithm == "v3" {
+		result := sudoku.GenerateSudokuPuzzleV3(parsedReq.Difficulty)
+		response := Response{
+			Puzzle:        boardToSlice(result.Puzzle),
+			Solution:      boardToSlice(result.Solution),
+			Clues:         result.Clues,
+			Difficulty:    parsedReq.Difficulty,
+			Size:          9,
+			Success:       result.Success,
+			Algorithm:     "v3",
+			HiddenSingles: &result.HiddenSingles,
+			NakedSingles:  &result.NakedSingles,
+			Attempts:      &result.Attempts,
+			Passes:        &result.Passes,
+		}
+		jsonResp, _ := json.Marshal(response)
+		return events.APIGatewayProxyResponse{
+			StatusCode: 200,
+			Body:       string(jsonResp),
+			Headers: map[string]string{
+				"Content-Type": "application/json",
+			},
 		}, nil
 	}
 

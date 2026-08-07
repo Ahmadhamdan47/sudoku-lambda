@@ -35,9 +35,9 @@ func TestHandlerV1ShapeUnchanged(t *testing.T) {
 			t.Errorf("v1 response missing %q", k)
 		}
 	}
-	for _, k := range []string{"algorithm", "hiddenSingles", "nakedSingles", "attempts"} {
+	for _, k := range []string{"algorithm", "hiddenSingles", "nakedSingles", "attempts", "passes"} {
 		if _, ok := body[k]; ok {
-			t.Errorf("v1 response should not contain V2 field %q", k)
+			t.Errorf("v1 response should not contain V2/V3 field %q", k)
 		}
 	}
 	if len(body) != len(want) {
@@ -82,12 +82,50 @@ func TestHandlerV2Shape(t *testing.T) {
 	}
 }
 
+// TestHandlerV3Shape pins the documented V3 response.
+func TestHandlerV3Shape(t *testing.T) {
+	for _, d := range []string{"easy", "medium", "hard", "very hard"} {
+		d := d
+		t.Run(d, func(t *testing.T) {
+			status, body := invoke(t, `{"difficulty":"`+d+`","size":9,"algorithm":"v3"}`)
+			if status != 200 {
+				t.Fatalf("status = %d, want 200", status)
+			}
+			for _, k := range []string{
+				"puzzle", "solution", "clues", "difficulty", "size", "success",
+				"algorithm", "hiddenSingles", "nakedSingles", "attempts", "passes",
+			} {
+				if _, ok := body[k]; !ok {
+					t.Errorf("v3 response missing %q", k)
+				}
+			}
+			if body["algorithm"] != "v3" {
+				t.Errorf("algorithm = %v, want v3", body["algorithm"])
+			}
+			if body["size"].(float64) != 9 {
+				t.Errorf("size = %v, want 9", body["size"])
+			}
+			puzzle, ok := body["puzzle"].([]interface{})
+			if !ok || len(puzzle) != 9 {
+				t.Fatalf("puzzle is not a 9-row array: %v", body["puzzle"])
+			}
+			if row, ok := puzzle[0].([]interface{}); !ok || len(row) != 9 {
+				t.Errorf("puzzle row is not 9 wide: %v", puzzle[0])
+			}
+			if d == "very hard" && body["success"] != true {
+				t.Errorf("very hard must always succeed, got success=%v", body["success"])
+			}
+		})
+	}
+}
+
 func TestHandlerRejectsBadInput(t *testing.T) {
 	cases := map[string]string{
 		"unknown difficulty": `{"difficulty":"impossible","size":9}`,
 		"bad size":           `{"difficulty":"easy","size":5}`,
-		"unknown algorithm":  `{"difficulty":"easy","size":9,"algorithm":"v3"}`,
+		"unknown algorithm":  `{"difficulty":"easy","size":9,"algorithm":"v9"}`,
 		"v2 with size 4":     `{"difficulty":"easy","size":4,"algorithm":"v2"}`,
+		"v3 with size 6":     `{"difficulty":"easy","size":6,"algorithm":"v3"}`,
 		"malformed json":     `{"difficulty":`,
 	}
 	for name, body := range cases {
